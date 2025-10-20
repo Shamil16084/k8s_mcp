@@ -2,6 +2,10 @@ from mcp.server.fastmcp import FastMCP
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from datetime import datetime
+from pydantic import BaseModel, Field, constr, ValidationError
+from functools import wraps
+
+
 
 # ---------------- MCP Initialization ---------------- #
 mcp = FastMCP("Kubernetes MCP Server")
@@ -24,6 +28,31 @@ def safe_api_call(func):
         return {"error": f"ApiException: {e.reason}"}
     except Exception as e:
         return {"error": f"Exception: {str(e)}"}
+    
+
+
+
+
+# ---------------- Validation Decorator ---------------- #
+def validate_input(model):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(raw_input):
+            try:
+                parsed = model(**raw_input)
+                return func(parsed)
+            except ValidationError as ve:
+                return {"error": "Validation failed", "details": ve.errors()}
+        return wrapper
+    return decorator
+
+# ---------------- Pydantic Models ---------------- #
+class NamespaceInput(BaseModel):
+    namespace: constr(strip_whitespace=True, min_length=1, max_length=63) = Field(
+        ..., description="Kubernetes namespace name"
+    )
+
+
 
 # ---------------- Basic Resource Listing ---------------- #
 
