@@ -3,7 +3,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 name = "add_numbers"
-description = "Adds two numbers together."
+description = (
+    "Adds two numbers together. "
+    "Use this tool ONLY when the user explicitly requests addition or numeric calculations."
+)
 endpoint = "/tools/add_numbers"
 
 def register(app: FastAPI):

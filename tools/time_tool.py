@@ -3,7 +3,10 @@ from datetime import datetime
 
 # Metadata
 name = "get_current_time"
-description = "Returns the current hour, minute, and second."
+description = (
+    "Returns the current time (hour, minute, second). "
+    "Use this tool ONLY when the user specifically asks for the current time or date."
+)
 endpoint = f"/tools/{name}"
 
 # Create a router for this tool

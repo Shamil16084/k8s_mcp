@@ -5,7 +5,7 @@ import json
 import logging
 import argparse
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+LLM_URL = "http://10.150.249.12:8080/v1/chat/completions"
 MCP_URL = "http://localhost:8080"
 
 # --- Logging Setup ---
@@ -29,21 +29,28 @@ def get_tools():
         logger.error(f"❌ Failed to fetch tools: {e}")
         return []
 
-def ask_ollama(prompt: str) -> str:
-    logger.debug(f"Sending prompt to Ollama:\n{prompt}")
+def ask_llm(prompt: str) -> str:
+    logger.debug(f"Sending prompt to LLM:\n{prompt}")
     try:
-        r = requests.post(OLLAMA_URL, json={
-            "model": "mistral",
-            "prompt": prompt,
+        r = requests.post(LLM_URL, json={
+            "model": "gpt-3.5-turbo",  # or whatever model is supported
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2,
             "stream": False
-        }, timeout=30)
+        }, timeout=60)
+
         r.raise_for_status()
-        response = r.json().get("response", "").strip()
-        logger.debug(f"Raw LLM response: {response}")
+
+        response = r.json()["choices"][0]["message"]["content"].strip()
+        logger.debug(f"LLM response: {response}")
         return response
     except Exception as e:
-        logger.error(f"❌ Failed to contact Ollama: {e}")
+        logger.error(f"❌ Failed to contact LLM: {e}")
         return ""
+
 
 def call_tool(endpoint: str, payload: dict = None):
     """
@@ -168,6 +175,8 @@ A: call_tool:get_current_time
 Q: Add 3 and 5.
 A: call_tool:add_numbers with arguments: [3, 5]
 
+In other cases,when the tool describtion does not match with the user input, answer normally!
+
 User asked: {user_input}
 """
         logger.debug(f"Built prompt:\n{prompt}")
@@ -180,7 +189,9 @@ User asked: {user_input}
             break
 
         prompt = build_prompt(user_input)
-        llm_response = ask_ollama(prompt)
+        # llm_response = ask_ollama(prompt)
+        llm_response = ask_llm(prompt)
+
         logger.info(f"LLM Response: {llm_response}")
 
         if llm_response and "call_tool:" in llm_response:
@@ -209,6 +220,11 @@ User asked: {user_input}
 
 # --- Entry point ---
 if __name__ == "__main__":
+
+    test_prompt = "Say hello"
+    print("🔧 Testing LLM connection...")
+    print("Prompt:", test_prompt)
+    print("Response:", ask_llm(test_prompt))
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
